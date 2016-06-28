@@ -1,0 +1,282 @@
+---
+title: "Exploring Website Click Data"
+author: "Celia Taylor"
+date: "June 27, 2016"
+output: 
+  html_document:
+    keep_md: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+######Introduction
+######This is from https://rpubs.com/tmcfl/simulated-click-analysis
+######This tutorial is based on the EDA Exercises in the book, Doing Data Science, which I highly recommend.
+######There are 31 data sets named nyt1.csv, nyt2.csv,…, nyt31.csv, which can be downloaded from GitHub.
+######Each csv represents one (simulated) days worth of ads shown and clicks recorded on the New York 
+######Times homepage in May 2012. Each row in the csv represents a single user.
+######There are five columns: Age, Gender (0=female, 1=male), Impressions, Clicks, and 
+######Signed_In status (0=not signed in, 1=signed in).
+
+######Create a data frame called data1 from the nyt1.csv file
+```{r GetData, include=TRUE, echo=TRUE}
+#Create a data frame called data1 from the nyt1.csv file
+fileLocation <- "http://stat.columbia.edu/~rachel/datasets/nyt1.csv"
+data1 <- read.csv(url(fileLocation))
+head(data1)
+
+
+# Use the section below if you would rather import the data from a local file
+# fileLocation <- "~/path/for/the/file/nyt1.csv"
+# data1 <- read.csv("fileLocation")
+```
+######Take a look at the first 5 rows to get a feel for the data
+```{r FeelData, include=TRUE, echo=TRUE}
+#Take a look at the first 5 rows to get a feel for the data
+head(data1)
+```
+
+######You can get a overview of the structure of the data by using the str() function
+```{r strData, include=TRUE, echo=TRUE}
+#You can get a overview of the structure of the data by using the str() function
+# str stands for 'structure'
+# str() returns information about each column such as name, data type, etc.
+str(data1)
+```
+######It could also be helpful to look at a summary of the data. This gives you useful 
+######information such as the number of rows in the object, and the mean, median, and 
+######range (min-max) of each column
+
+```{r summaryData, include=TRUE, echo=TRUE}
+#It could also be helpful to look at a summary of the data. This gives you useful 
+#information such as the number of rows in the object, and the mean, median, and 
+#range (min-max) of each column.
+summary(data1)
+```
+######Since we’re exploring, it’s helpful to visualize the distribution of some of 
+######the columns, so we can see what we’re working with and if anything looks out 
+######of the ordinary.
+```{r DistributionAge, include=TRUE, echo=TRUE}
+#Since we’re exploring, it’s helpful to visualize the distribution of some of 
+#the columns, so we can see what we’re working with and if anything looks out 
+#of the ordinary.
+# distribution of the Age column
+hist(data1$Age, main="", xlab="Age")
+range(data1$Age)
+```
+###### Distribution of the Impressions column
+```{r DistributionImpressions, include=TRUE, echo=TRUE}
+# Distribution of the Impressions column
+hist(data1$Impressions, main="", xlab="# of Impressions")
+range(data1$Impressions)
+```
+###### Distribution of the Clicks column
+```{r DistributionClicks, include=TRUE, echo=TRUE}
+# Distribution of the Clicks column
+hist(data1$Clicks, main="", xlab="# of Clicks")
+range(data1$Clicks)
+```
+######Did you notice that there is a disproportionate number of ages recorded as zero? 
+######This could skew our analysis, so we may need to account for that later.
+
+#####Task 1
+######create a new variable named Age_Group, that groups users into age categories 
+######“<18”, “18-24”, “25-34”, “35-44”, “45-54”, “55-64”, and “65+”
+######1.1) Cut the ages into the desired groups and add the groups to a new column 
+######in data1 called Age_Group. The ‘cut’ function creates a factor with levels.
+```{r CutData, include=TRUE, echo=TRUE}
+######1.1) Cut the ages into the desired groups and add the groups to a new column 
+######in data1 called Age_Group. The ‘cut’ function creates a factor with levels.
+data1$Age_Group <- cut(data1$Age, c(-Inf, 18, 24, 34, 44, 54, 64, Inf))
+# Name the levels of 'Age_Group' for readability
+levels(data1$Age_Group) <- c("<18", "18-24", "25-34", "35-44", "45-54", "55-64", "65+")
+```
+######Take a look at the changes:
+```{r HeadData, include=TRUE, echo=TRUE}
+#Take a look at the changes:
+head(data1)
+```
+#####Task 2
+######For a single day, plot the distributions of ‘number of impressions’ and 
+######‘click-through-rate’ by Age_Group. (CTR = clicks/impressions).
+######2.1) Create a subset of data1 to exclude rows where there are no impressions 
+######(if there are no impressions, we assume there will be no clicks). Name the new 
+######object d1
+```{r SubsetData, include=TRUE, echo=TRUE}
+#2.1) Create a subset of data1 to exclude rows where there are no impressions 
+#(if there are no impressions, we assume there will be no clicks). Name the new 
+#object d1
+d1 <- subset(data1, Impressions>0)
+```
+######2.2) Add a column to d1 called CTR containing the click-through-rate
+```{r ClickThroughRate, include=TRUE, echo=TRUE}
+#2.2) Add a column to d1 called CTR containing the click-through-rate
+d1$CTR <- d1$Clicks/d1$Impressions
+head(d1)
+```
+######2.3) Plot the distribution of Impressions>0, grouped by Age_Group, 
+######using the ggplot2 package.
+```{r PlotImpressions, include=TRUE, echo=TRUE}
+#2.3) Plot the distribution of Impressions>0, grouped by Age_Group, 
+#using the ggplot2 package.
+library(ggplot2) # used for visualizations
+ggplot(subset(d1, Impressions>0), aes(x=Impressions, fill=Age_Group))+
+    geom_histogram(binwidth=1)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+######2.4) Plot the distribution of CTR>0, grouped by Age_Group
+```{r PlotClickThroughRate, include=TRUE, echo=TRUE}
+#2.4) Plot the distribution of CTR>0, grouped by Age_Group
+ggplot(subset(d1, CTR>0), aes(x=CTR, fill=Age_Group))+
+    labs(title="Click-through rate by age group (05/01/2012)")+
+    geom_histogram(binwidth=.025)
+```
+
+
+
+#################################################################################################
+
+######Create a data frame called data14 from the nyt14.csv file
+```{r GetData14, include=TRUE, echo=TRUE}
+#Create a data frame called data14 from the nyt14.csv file
+fileLocation <- "http://stat.columbia.edu/~rachel/datasets/nyt14.csv"
+data14 <- read.csv(url(fileLocation))
+head(data14)
+
+
+# Use the section below if you would rather import the data from a local file
+# fileLocation <- "~/path/for/the/file/nyt14.csv"
+# data14 <- read.csv("fileLocation")
+```
+######Take a look at the first 5 rows to get a feel for the data
+```{r FeelData14, include=TRUE, echo=TRUE}
+#Take a look at the first 5 rows to get a feel for the data
+head(data14)
+```
+
+######You can get a overview of the structure of the data by using the str() function
+```{r strData14, include=TRUE, echo=TRUE}
+#You can get a overview of the structure of the data by using the str() function
+# str stands for 'structure'
+# str() returns information about each column such as name, data type, etc.
+str(data14)
+```
+######It could also be helpful to look at a summary of the data. This gives you useful 
+######information such as the number of rows in the object, and the mean, median, and 
+######range (min-max) of each column
+
+```{r summaryData14, include=TRUE, echo=TRUE}
+#It could also be helpful to look at a summary of the data. This gives you useful 
+#information such as the number of rows in the object, and the mean, median, and 
+#range (min-max) of each column.
+summary(data14)
+```
+######Since we’re exploring, it’s helpful to visualize the distribution of some of 
+######the columns, so we can see what we’re working with and if anything looks out 
+######of the ordinary.
+```{r DistributionAge14, include=TRUE, echo=TRUE}
+#Since we’re exploring, it’s helpful to visualize the distribution of some of 
+#the columns, so we can see what we’re working with and if anything looks out 
+#of the ordinary.
+# distribution of the Age column
+hist(data14$Age, main="", xlab="Age")
+range(data14$Age)
+```
+###### Distribution of the Impressions column
+```{r DistributionImpressions14, include=TRUE, echo=TRUE}
+# Distribution of the Impressions column
+hist(data14$Impressions, main="", xlab="# of Impressions")
+range(data14$Impressions)
+```
+###### Distribution of the Clicks column
+```{r DistributionClicks14, include=TRUE, echo=TRUE}
+# Distribution of the Clicks column
+hist(data14$Clicks, main="", xlab="# of Clicks")
+range(data14$Clicks)
+```
+######Did you notice that there is a disproportionate number of ages recorded as zero? 
+######This could skew our analysis, so we may need to account for that later.
+
+#####Task 1
+######create a new variable named Age_Group, that groups users into age categories 
+######“<18”, “18-24”, “25-34”, “35-44”, “45-54”, “55-64”, and “65+”
+######1.1) Cut the ages into the desired groups and add the groups to a new column 
+######in data14 called Age_Group. The ‘cut’ function creates a factor with levels.
+```{r CutData14, include=TRUE, echo=TRUE}
+######1.1) Cut the ages into the desired groups and add the groups to a new column 
+######in data14 called Age_Group. The ‘cut’ function creates a factor with levels.
+data14$Age_Group <- cut(data14$Age, c(-Inf, 18, 24, 34, 44, 54, 64, Inf))
+# Name the levels of 'Age_Group' for readability
+levels(data14$Age_Group) <- c("<18", "18-24", "25-34", "35-44", "45-54", "55-64", "65+")
+```
+######Take a look at the changes:
+```{r HeadData14, include=TRUE, echo=TRUE}
+#Take a look at the changes:
+head(data14)
+```
+#####Task 2
+######For a single day, plot the distributions of ‘number of impressions’ and 
+######‘click-through-rate’ by Age_Group. (CTR = clicks/impressions).
+######2.1) Create a subset of data14 to exclude rows where there are no impressions 
+######(if there are no impressions, we assume there will be no clicks). Name the new 
+######object d1
+```{r SubsetData14, include=TRUE, echo=TRUE}
+#2.1) Create a subset of data14 to exclude rows where there are no impressions 
+#(if there are no impressions, we assume there will be no clicks). Name the new 
+#object d14
+d14 <- subset(data14, Impressions>0)
+```
+######2.2) Add a column to d1 called CTR containing the click-through-rate
+```{r ClickThroughRate14, include=TRUE, echo=TRUE}
+#2.2) Add a column to d14 called CTR containing the click-through-rate
+d14$CTR <- d14$Clicks/d14$Impressions
+head(d14)
+```
+######2.3) Plot the distribution of Impressions>0, grouped by Age_Group, 
+######using the ggplot2 package.
+```{r PlotImpressions14, include=TRUE, echo=TRUE}
+#2.3) Plot the distribution of Impressions>0, grouped by Age_Group, 
+#using the ggplot2 package.
+library(ggplot2) # used for visualizations
+ggplot(subset(d14, Impressions>0), aes(x=Impressions, fill=Age_Group))+
+    geom_histogram(binwidth=1)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+######2.4) Plot the distribution of CTR>0, grouped by Age_Group
+```{r PlotClickThroughRate14, include=TRUE, echo=TRUE}
+#2.4) Plot the distribution of CTR>0, grouped by Age_Group
+ggplot(subset(d14, CTR>0), aes(x=CTR, fill=Age_Group))+
+    labs(title="Click-through rate by age group (05/14/2012)")+
+    geom_histogram(binwidth=.025)
+```
+
